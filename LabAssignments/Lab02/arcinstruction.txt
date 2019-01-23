@@ -1,0 +1,20 @@
+!Creating a data set with the .lsp extension (anything with ! in front of it will not run, used as 
+!directions below).
+
+Dataset = some name  
+! Replace some name with dataset name.  
+!This will appear in the menu bar in ARC 
+! When you load it 
+Begin description 
+!Some description for your own info 
+End description 
+Begin variables 
+Col 0 = variable name = variable label 
+Col 1 = variable name = variable label 
+!and so on for each variable 
+End variable 
+Begin data 
+( 
+! Insert data in ASCII format between the parenthesis. 
+! It can be deliminated by space or tab
+)
