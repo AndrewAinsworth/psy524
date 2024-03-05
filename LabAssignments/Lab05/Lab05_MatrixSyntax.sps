@@ -1,11 +1,11 @@
 ﻿* Encoding: UTF-8.
-print /TITLE="Setting your working directory".
+TITLE Setting your working directory.
 cd 'c:\temp'.
 
-print /TITLE="Open data file".
+TITLE Open data file.
 get file 'samplecancorr.sav'.
 
-print /TITLE="Run the correlations between the variables and save the corr matrix".
+TITLE Run the correlations between the variables and save the corr matrix.
 
   CORRELATIONS
   /VARIABLES=ts tc bs bc
