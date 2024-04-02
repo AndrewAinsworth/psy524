@@ -1,0 +1,89 @@
+---
+title: "Psy524 MANOVA"
+author: "Dr. A"
+date: "2024"
+output:
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Install and load the required packages
+```{r Load Libraries}
+library(foreign)
+#install.packages('DescTools')
+library(DescTools)
+#install.packages('summarytools')
+library(summarytools)
+#install.packages('heplots')
+library(heplots)
+```
+
+#load data
+```{r Load Data}
+survey <- read.spss("https://github.com/AndrewAinsworth/psy524/raw/master/LabAssignments/Lab06/survey.sav", use.value.label=FALSE, to.data.frame=TRUE)
+names(survey) <- tolower(names(survey)) #I add this to lower the names to what you are referring to below. 
+#Let's get rid of those 8 and 9 values
+survey$source[survey$source==8] <- NA
+survey$source[survey$source==9] <- NA
+#In order for MANOVA to work we need to make sure that source is defined as a categorical variable (factor in R)
+survey$source <- factor(survey$source)
+#To make our lives easier lets define the DVs
+DVs <- cbind(survey$toptim, survey$tmast, survey$tposaff, survey$tlifesat, survey$tpstress, survey$tslfest, survey$tmarlow)
+```
+
+#Descriptive stats
+```{r Model}
+#From summarytools
+stby(
+  data = survey,
+  INDICES = survey$source,
+  FUN = descr,
+  stats = "common"
+)
+```
+
+#MANOVA model
+```{r Model1}
+model1 <- manova(DVs ~ source, data = survey)
+summary(model1, test = "Wilks", intercept = FALSE)
+summary.aov(model1)
+etasq(model1, test="Wilks") #this is from heplots but check it against spss
+```
+
+#Levene's Tests
+```{r Levene's test}
+LeveneTest(toptim ~ source, data = survey)#From desctools
+LeveneTest(tmast ~ source, data = survey)
+LeveneTest(tposaff ~ source, data = survey)
+LeveneTest(tlifesat ~ source, data = survey)
+LeveneTest(tpstress ~ source, data = survey)
+LeveneTest(tslfest ~ source, data = survey)
+LeveneTest(tmarlow ~ source, data = survey)
+```
+#Scheffe Test
+```{r}
+summary.aov(model1)
+modela <- aov(tmast ~ source, data = survey)
+modelb <- aov(tposaff ~ source, data = survey)
+modelc <- aov(tlifesat ~ source, data = survey)
+modeld <- aov(tpstress ~ source, data = survey)
+modele <- aov(tmarlow ~ source, data = survey)
+
+ScheffeTest(modela)
+ScheffeTest(modelb)
+ScheffeTest(modelc)
+ScheffeTest(modeld)
+ScheffeTest(modele)
+```
+
+#Box's M
+```{r}
+boxM(DVs ~ source, data=survey)#from heplot
+```
+
+
+
+
