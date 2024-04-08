@@ -1,0 +1,34 @@
+---
+title: "PSY524 - Profile Analysis"
+author: "Your name here"
+date: "2024-04-08"
+output:
+  word_document: default
+---
+
+# Load required packages
+```{r Load Packages}
+#install.packages('pacman')
+pacman::p_load(foreign, psych,heplots,profileR,biotools,effectsize)
+```
+
+#Loading the data set from GitHub
+```{r Load Data}
+forclass <- read.spss("https://github.com/AndrewAinsworth/psy524/raw/master/LabAssignments/Lab07/forclass.sav", use.value.label=FALSE, to.data.frame=TRUE)
+names(forclass) <- tolower(names(forclass))
+dep_vars <- cbind(forclass$n,forclass$e,forclass$o,forclass$a,forclass$c)
+```
+
+#Running Profile Analysis of Personality Variables by Ethnic group from the forclass data set
+```{r analysis}
+#Generate decriptive statistics by group
+describeBy(forclass[,5:9],forclass[,2])
+
+#Running a profile analysis of personality variables by ethnic group using profileR PBG 
+mod1 <- pbg(forclass[,5:9], group = forclass[,2], original.names = TRUE, profile.plot = TRUE)
+summary(mod1)
+print(mod1)
+
+#Testing for Homogeneity of Covariances matrices Assumption
+boxM(forclass[, 5:9],forclass[, 2])
+```
