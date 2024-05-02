@@ -1,0 +1,38 @@
+---
+title: "Lab 09 Logistic Regression"
+author: "Psy524"
+date: "2024-04-29"
+output:
+  word_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Install and load the required packages
+```{r Load Libraries}
+library(foreign)
+#install.packages('aod')
+library(aod)
+```
+
+#load data
+```{r}
+dispss <- read.spss("https://github.com/AndrewAinsworth/psy524/raw/master/LabAssignments/Lab09/dispss.sav", use.value.label=FALSE, to.data.frame=TRUE)
+head(dispss)
+summary(dispss)
+sapply(dispss, sd)
+dispss$ethn <- factor(dispss$ethn)
+```
+
+#naming the logit and defining GLM
+```{r Model}
+mylogit <- glm(disoi ~ ethn + sos + ego + n + e + o + a + c, data = dispss, family = "binomial")
+summary(mylogit)
+wald.test(b = coef(mylogit), Sigma = vcov(mylogit), Terms = 1:9)
+anova(object=mylogit, test="Chisq")
+
+```
+
