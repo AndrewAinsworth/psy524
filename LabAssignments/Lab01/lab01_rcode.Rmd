@@ -1,0 +1,275 @@
+---
+title: "Lab01 Notebook"
+author: "Andrew Ainsworth"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  word_document: default
+---
+
+#This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook that corresponds to the SPSS runs included in Lab 01. 
+
+##You can either choose to run the whole syntax in R-studio by selecting run -> all OR you can run each "chunk" separately below.  Make sure to run the first chunk (i.e., loading packages) before running anything below that or much of the syntax will not work. 
+
+  
+##If this is your first time using any of the packages below, remove the "#" before the install.packages lines so that you can install the packages the first time.  After that you can use the "#" to avoid re-installing every time you want to run the syntax.
+```{r loading packages, include=FALSE}
+#install.packages('psych')
+library(psych)
+#install.packages('car', dependencies=TRUE)
+library(car)
+#install.packages('onewaytests')
+library(onewaytests)
+#install.packages('DescTools')
+library(DescTools)
+#install.packages('ppcor')
+library(ppcor)
+#install.packages('reshape2')
+library(reshape2)
+#install.packages("rmarkdown")
+library(rmarkdown)
+```
+
+#Problem #1
+```{r #1a}
+#Read in the dataset using read.table
+anova1 <- read.table("https://raw.githubusercontent.com/AndrewAinsworth/psy524/master/LabAssignments/Lab01/anova.dat", sep="\t", header=TRUE)
+
+#Stack the variables so that the are in BG format and rename columns
+anova1_reconfig <- stack(anova1)
+names(anova1_reconfig)<-c("dv", "iv")
+levels(anova1_reconfig$iv)
+
+#Descriptives from onewaytests package
+describe(dv ~ iv, data = anova1_reconfig)
+
+#Homogeneity Test from onewaytests package
+homog.test(dv ~ iv, data = anova1_reconfig, method = "Levene", verbose=TRUE)
+
+#ANOVA from r base
+anova1.aov <- aov(dv ~ iv, data = anova1_reconfig)
+summary(anova1.aov)
+
+#Brown-Forsythe Test from onewaytests package
+bf.test(dv ~ iv, data = anova1_reconfig, verbose=TRUE)
+
+#Planned Comparisons
+c1 <- c(2, -1, -1)
+c2 <- c(0, 1, -1)
+mat <- cbind(c1, c2)
+contrasts(anova1_reconfig$iv) <- mat
+summary(anova1.aov, split=list(iv=list('group1 vs 2,3'=1,'group 2 vs 3'=2)))
+
+#Tukey and Scheffe Test using DescTools Package
+PostHocTest(anova1.aov, method="hsd", conf.level = .95) 
+PostHocTest(anova1.aov, method="scheffe", conf.level = .95) 
+```
+
+```{r #1b}
+#Create the orthogonal predictors
+ortho.pred <- data.frame(
+  contrast1 = c(rep(2,20), rep(-1,40)),
+  contrast2 = c(rep(0,20), rep(1,20), rep(-1,20)))
+
+#Combining with anova1 data.frame
+anova1_2 <- cbind(anova1_reconfig,ortho.pred)
+
+
+#Conducting the Regression
+fit_anova1 <- lm(dv ~ contrast1 + contrast2, data = anova1_2)
+summary(fit_anova1)
+anova(fit_anova1)
+
+#Zero-order, Partial and Semi-partial correlations using the ppcor package
+#Selecting only those variables I want to correlate
+cor_data <- cbind(anova1_2$dv, anova1_2$contrast1, anova1_2$contrast2)
+
+print("Zero Order (Pearson) Correlations")
+round(cor(cor_data),03)
+print("Partial Correlations")
+round(pcor(cor_data)$estimate,03)
+print("Semi-partial (part) Correlations") 
+round(spcor(cor_data)$estimate,03)
+```
+
+#Problem #2
+```{r #2}
+anova2 <- read.table("https://raw.githubusercontent.com/AndrewAinsworth/psy524/master/LabAssignments/Lab01/anova2.txt", sep="\t", header=TRUE)
+
+#Stack the variables so that the are in BG format and rename columns
+anova2_reconfig <- stack(anova2)
+names(anova2_reconfig)<-c("dv", "labels")
+
+#Creating a and b factors for the IVs
+pred_ab <- data.frame(
+  a = c(rep(1,6),rep(2,6),rep(3,6),rep(4,6)),
+  b = c(rep(1,3), rep(2,3), rep(1,3), rep(2,3),rep(1,3), rep(2,3), rep(1,3), rep(2,3)))
+
+#Combining with anova2 data.frame and specifying a and b as "factors"
+anova2_2 <- cbind(anova2_reconfig, pred_ab)
+anova2_2$a <- as.factor(anova2_2$a)
+anova2_2$b <- as.factor(anova2_2$b)
+
+#Generating Descriptives by a, b and a*b (from psych package)
+describeBy(anova2_2$dv,anova2_2$a,mat=TRUE)
+describeBy(anova2_2$dv,anova2_2$b,mat=TRUE)
+describeBy(anova2_2$dv,list(anova2_2$a,anova2_2$b),mat=TRUE)
+
+#Conducting the Factorial ANOVA
+model2 <- aov(dv ~ a + b + a*b, data=anova2_2)
+summary(model2)
+
+#Tukey and Scheffe Test using DescTools Package
+PostHocTest(model2, which = "a", method="hsd", conf.level = .95)
+PostHocTest(model2, which = "a", method="scheffe", conf.level = .95) 
+
+#Creating interaction plots. I used the png a include_graphics function since knitr was having file permission issues otherwise. 
+png('figure1.png')
+interaction.plot(anova2_2$a, anova2_2$b, anova2_2$dv,
+                 main = "Interaction Graph",
+                 trace.label = "IV B",
+                 xlab = "IV A",
+                 ylab = "Average DV Value")
+dev.off()
+knitr::include_graphics('figure1.png')
+
+png('figure2.png')
+interaction.plot(anova2_2$b, anova2_2$a, anova2_2$dv,
+                 main = "Interaction Graph",
+                 trace.label = "IV A",
+                 xlab = "IV B",
+                 ylab = "Average DV Value")
+dev.off()
+knitr::include_graphics('figure2.png')
+
+#Levene's Test from car package
+leveneTest(dv ~ a*b, data=anova2_2, center="mean")
+
+#Partial EtaSquared values from desctools
+EtaSq(model2)
+```
+
+
+#Problem #3
+```{r #3}
+#Reading in the data using read.csv
+anova3 <- read.csv("https://raw.githubusercontent.com/AndrewAinsworth/psy524/master/LabAssignments/Lab01/anova3.csv", header=TRUE)
+
+#Creating a subject variable to use as a key variable in melt below
+subject <- rep(1:5)
+
+#Adding subject to the data set and setting it as a factor
+anova3_wide <- cbind(subject,anova3)
+anova3_wide$subject <- factor(anova3_wide$subject)
+
+#Reformatting the data from "wide" to "long" format using melt from reshape2 package
+anova3_long <- melt(anova3_wide, 
+                    id.vars=c("subject"),
+                    measure.vars=c("scifim1", "scifim2", "scifim3", "mstrym1", "mstrym2", "mstrym3"),
+                    variable.name="condition",
+                    value.name="dv")
+
+#Creating variables that code for the book and month conditions
+book <- data.frame(c(rep("scifi",15),rep("mystery",15)))
+names(book)<-c("book")
+month <- data.frame(c(rep("month1",5),rep("month2",5),rep("month3",5),rep("month1",5),rep("month2",5),rep("month3",5)))
+names(month)<-c("month")
+
+#Combining the Book and Month variables to the data set
+anova3_long2 <- cbind(anova3_long,book,month)
+
+#Conducting the within groups factorial ANOVA
+aov.ww <- aov(dv ~ book*month + Error(subject/(book*month)), data=anova3_long2)
+summary(aov.ww)
+
+#Descriptives from psych package
+describeBy(anova3_long2$dv,anova3_long2$book,mat=TRUE)
+describeBy(anova3_long2$dv,anova3_long2$month,mat=TRUE)
+describeBy(anova3_long2$dv,list(anova3_long2$book,anova3_long2$month),mat=TRUE)
+
+#Creating interaction plot (values may be reversed from SPSS figure)
+png('figure3.png')
+interaction.plot(anova3_long2$month, anova3_long2$book, anova3_long2$dv,
+                 main = "Book by Month Interaction",
+                 trace.label = "Book",
+                 xlab = "Month",
+                 ylab = "Average DV Value")
+dev.off()
+knitr::include_graphics('figure3.png')
+
+#Partial EtaSquared values from desctools
+EtaSq(aov.ww, type=1)
+```
+
+#Problem #4
+```{r #4}
+#Reading in the data using read.fwf
+anova4 <- read.fwf("https://raw.githubusercontent.com/AndrewAinsworth/psy524/master/LabAssignments/Lab01/anova4.dat",
+                   header=FALSE, #the file doesn't not contain names at the top
+                   skip = 1, #skip the first blank row
+                   widths = c(1,3,2,3,2,3,3,3,3), #column widths for each variable
+                   col.names=c("gender","beforet1","beforet2","beforet3","beforet4","aftert1","aftert2","aftert3","aftert4"))
+
+#Creating a subject variable to use as a key variable in melt below
+subject <- rep(1:8)
+
+#Adding subject to the data set and setting it as a factor
+anova4_wide <- cbind(subject,anova4)
+anova4_wide$subject <- factor(anova4_wide$subject)
+anova4_wide$gender <- factor(anova4_wide$gender)
+
+#Reformatting the data from "wide" to "long" format using melt from reshape2 package
+anova4_long <- melt(anova4_wide, 
+                    id.vars=c("subject","gender"),
+                    measure.vars=c("beforet1","beforet2","beforet3","beforet4","aftert1","aftert2","aftert3","aftert4"),
+                    variable.name="condition",
+                    value.name="dv")
+
+#Creating variables that code for the intervention and time conditions
+interv <- data.frame(c(rep("before",32),rep("after",32)))
+names(interv)<-c("interv")
+time <- data.frame(c(rep("t1",8),rep("t2",8),rep("t3",8),rep("t4",8),rep("t1",8),rep("t2",8),rep("t3",8),rep("t4",8)))
+names(time)<-c("time")
+
+#Combining the interv and time variables to the data set
+anova4_long2 <- cbind(anova4_long,interv,time)
+
+#Conducting the within groups factorial ANOVA
+aov.mix <- aov(dv ~ (gender*interv*time) + Error(subject/(interv*time)), data=anova4_long2)
+summary(aov.mix)
+
+#Descriptives from psych package
+describeBy(anova4_long2$dv,anova4_long2$interv,mat=TRUE)
+describeBy(anova4_long2$dv,anova4_long2$time,mat=TRUE)
+describeBy(anova4_long2$dv,list(anova4_long2$interv,anova4_long2$time),mat=TRUE)
+
+#Creating sub-datasets to separate before and after for plotting
+anova4_before <- anova4_long2[1:32, ]
+anova4_after <- anova4_long2[33:64, ]
+
+#Creating interaction plot (values may be reversed from SPSS figure) for "before"
+png('figure4.png')
+interaction.plot(anova4_before$time, anova4_before$gender, anova4_before$dv,
+                 main="Before Intervention",
+                 trace.label = "Gender",
+                 xlab = "Time",
+                 ylab = "Average DV Value")
+dev.off()
+knitr::include_graphics('figure4.png')
+
+#Creating interaction plot (values may be reversed from SPSS figure) for "after"
+png('figure5.png')
+interaction.plot(anova4_after$time, anova4_after$gender, anova4_after$dv,
+                 main="After Intervention",
+                 trace.label = "Gender",
+                 xlab = "Time",
+                 ylab = "Average DV Value")
+dev.off()
+knitr::include_graphics('figure5.png')
+
+#Partial EtaSquared values from desctools
+EtaSq(aov.mix, type=1)
+```
+
+
+
