@@ -1,0 +1,46 @@
+---
+title: "DFA for Lab 8"
+author: "Name"
+date: "2024-04-23"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lab #8
+
+## Replicating the Star Treck data set from lab #8
+
+```{r packages}
+#install.packages('MASS')
+library(MASS)
+library(foreign)
+
+#install.packages('pacman')
+pacman::p_load(MASS,foreign)
+```
+
+```{r load datasets}
+trek <- read.spss("https://github.com/AndrewAinsworth/psy524/raw/master/LabAssignments/Lab08/star_trek.sav", use.value.label=TRUE, to.data.frame=TRUE)
+names(trek) <- tolower(names(trek))
+```
+
+## DFA stats
+
+```{r Run DFA}
+
+dfa <- lda(group ~ agres + logic + verb + intel + str, data=trek)
+dfa
+
+plot(dfa, col = as.integer(trek$group))
+
+predictDFA <- predict(dfa, trek, svd = TRUE)
+predictDFA$posterior 
+as.data.frame(predictDFA$class) 
+predicttable = table(trek$group, 
+                     predictDFA$class, 
+                     dnn = c("actual group", "predicted group"))
+predicttable
+```
